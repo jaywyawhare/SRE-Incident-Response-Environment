@@ -288,7 +288,7 @@ def check_hf_space(url: str) -> bool:
                 _fail(f"Space POST /reset status {code}")
                 return False
             body = json.loads(resp.read().decode())
-            if body.get("step") != 0:
+            if body.get("observation", {}).get("step") != 0:
                 _fail("Space /reset did not return step=0")
                 return False
     except Exception as exc:

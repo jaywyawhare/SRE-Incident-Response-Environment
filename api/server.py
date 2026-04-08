@@ -29,7 +29,7 @@ _env = SREIncidentEnv()
 
 
 def _obs_dict(obs: SREObservation) -> Dict[str, Any]:
-    return obs.model_dump(mode="json", exclude={"done", "reward", "metadata"})
+    return obs.model_dump(mode="json", by_alias=True, exclude={"done", "reward", "metadata"})
 
 
 @app.post("/reset")
