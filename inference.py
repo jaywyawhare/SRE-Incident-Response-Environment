@@ -91,7 +91,7 @@ Step 5: resolve with the root cause service, a clear description, and fix_applie
 Respond with ONLY a single JSON object:
 {
   "action_type": "<one of: check_metrics, read_logs, check_dependencies, check_recent_deploys, check_config, rollback, restart, scale_up, apply_fix, clear_cache, resolve, escalate>",
-  "service": "<required for all except escalate: api-gateway | auth-service | user-service | payment-service | notification-service | database>",
+  "service": "<required for all except escalate: use exact service name from the observation's alerts or service_metrics>",
   "parameters": {},
   "reasoning": "<required: what you know so far, what you suspect, why this action>",
   "root_cause_description": "<required only for resolve: specific description of the root cause>",
