@@ -1,0 +1,16 @@
+.git
+.gitignore
+.pytest_cache
+__pycache__
+*.pyc
+.venv
+.tools
+.vendor_openenv
+.vendor_oe
+.vendor_oe_extract
+*.md
+!README.md
+tests
+plan.md
+.cursor
+.idea
