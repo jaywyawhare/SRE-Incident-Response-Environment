@@ -1,0 +1,45 @@
+spec_version: 1
+name: sre-incident-env
+type: space
+runtime: fastapi
+app: server.app:app
+port: 7860
+version: "1.0.0"
+description: >
+  A reinforcement learning environment where an agent acts as an on-call SRE,
+  diagnosing and resolving production incidents in a simulated microservices
+  system before SLA timers expire.
+author: ""
+tags:
+  - openenv
+  - sre
+  - incident-response
+  - production
+  - real-world
+tasks:
+  - id: easy
+    name: "The OOM Crash"
+    description: "Single service OOM after bad deploy. Obvious from metrics."
+    difficulty: easy
+    max_steps: 25
+    target_score_range: [0.75, 0.90]
+  - id: medium
+    name: "The Cascade"
+    description: "Cascading failure across 3 services. Requires dependency tracing."
+    difficulty: medium
+    max_steps: 20
+    target_score_range: [0.45, 0.65]
+  - id: hard
+    name: "The Ghost"
+    description: "Intermittent 5% failure from cache corruption. Multiple red herrings."
+    difficulty: hard
+    max_steps: 15
+    target_score_range: [0.15, 0.35]
+observation_space:
+  type: object
+  description: "Service metrics, alerts, log cache, and episode state"
+action_space:
+  type: object
+  description: "Investigation and remediation actions against named services"
+reward_range: [-1.0, 1.0]
+episode_timeout: 25
