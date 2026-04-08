@@ -155,7 +155,7 @@ def run_episode(
         history.append(json.dumps(action))
         steps += 1
         print(
-            "STEP",
+            "[STEP]",
             json.dumps(
                 {
                     "task_id": task_id,
@@ -185,7 +185,7 @@ def main() -> None:
         llm = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)
 
     print(
-        "START",
+        "[START]",
         json.dumps(
             {
                 "SRE_ENV_URL": SRE_ENV_URL,
@@ -216,7 +216,7 @@ def main() -> None:
             for tid, st, sc, el in rows
         ]
     }
-    print("END", json.dumps(summary), flush=True)
+    print("[END]", json.dumps(summary), flush=True)
 
 
 if __name__ == "__main__":
