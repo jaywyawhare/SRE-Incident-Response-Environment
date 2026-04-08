@@ -10,7 +10,7 @@ import httpx
 
 API_BASE_URL = os.environ.get("API_BASE_URL", "https://api-inference.huggingface.co/v1")
 MODEL_NAME = os.environ.get("MODEL_NAME", "gpt-4o-mini")
-HF_TOKEN = os.environ.get("HF_TOKEN") or os.environ.get("OPENAI_API_KEY", "")
+HF_TOKEN = os.getenv("HF_TOKEN")
 
 SRE_ENV_URL = os.environ.get("SRE_ENV_URL") or os.environ.get("ENV_BASE_URL", "http://127.0.0.1:7860")
 
@@ -154,6 +154,20 @@ def run_episode(
         cumulative = float(obs.get("cumulative_reward", body.get("reward") or 0.0))
         history.append(json.dumps(action))
         steps += 1
+        print(
+            "STEP",
+            json.dumps(
+                {
+                    "task_id": task_id,
+                    "step": steps,
+                    "action": action,
+                    "done": bool(body.get("done")),
+                    "cumulative_reward": cumulative,
+                },
+                default=str,
+            ),
+            flush=True,
+        )
         if body.get("done"):
             final = obs.get("final_episode_score") or cumulative
             return steps, float(final), time.perf_counter() - t0
@@ -163,13 +177,28 @@ def run_episode(
 
 def main() -> None:
     deadline = time.perf_counter() + INFERENCE_MAX_SECONDS
-    use_llm = bool(HF_TOKEN.strip())
+    use_llm = bool(HF_TOKEN and HF_TOKEN.strip())
     llm = None
     if use_llm:
         from openai import OpenAI
 
         llm = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)
 
+    print(
+        "START",
+        json.dumps(
+            {
+                "SRE_ENV_URL": SRE_ENV_URL,
+                "API_BASE_URL": API_BASE_URL,
+                "MODEL_NAME": MODEL_NAME,
+                "HF_TOKEN": "set" if use_llm else "unset",
+                "INFERENCE_MAX_SECONDS": INFERENCE_MAX_SECONDS,
+                "tasks": ["easy", "medium", "hard"],
+            },
+            default=str,
+        ),
+        flush=True,
+    )
     print(f"SRE_ENV_URL={SRE_ENV_URL}")
     print(f"API_BASE_URL={API_BASE_URL}")
     print(f"MODEL_NAME={MODEL_NAME}")
@@ -196,6 +225,7 @@ def main() -> None:
             for tid, st, sc, el in rows
         ]
     }
+    print("END", json.dumps(summary), flush=True)
     print("\nJSON_SUMMARY:", json.dumps(summary))
 
 
