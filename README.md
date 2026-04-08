@@ -15,7 +15,7 @@ Reset picks the scenario: `POST /reset` with `{"task_id":"easy"}` (or `medium` /
 
 ## `inference.py`
 
-Hits this server over HTTP and calls an LLM via the OpenAI client. Point it at the env with `SRE_ENV_URL` (default `http://127.0.0.1:7860`). For the model: `API_BASE_URL`, `MODEL_NAME`, and `HF_TOKEN` (or `OPENAI_API_KEY`). No key? It runs a dumb scripted path so you can still smoke-test.
+Hits this server over HTTP and calls an LLM via the OpenAI client. Point it at the env with `SRE_ENV_URL` (default `http://127.0.0.1:7860`). For the model: `API_BASE_URL`, `MODEL_NAME`, and `HF_TOKEN` (no default—unset runs a scripted baseline). Stdout uses structured lines: `START`, one `STEP` per env step, then `END` with the run summary.
 
 ## Checks before submit
 
