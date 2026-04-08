@@ -3,7 +3,7 @@
   "name": "The OOM Crash",
   "max_steps": 25,
   "sla_seconds_total": 120,
-  "hint": "Look for services that are down or report memory at capacity.",
+  "hint": null,
   "alerts": [
     {
       "service": "payment-service",
