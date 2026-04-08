@@ -226,7 +226,7 @@ class SREIncidentEnv(Environment[SREAction, SREObservation, SREState]):
             hint=self._task.hint,
             done=self._done,
             reward=step_reward,
-            cumulative_reward=self._cumulative_reward,
+            cumulative_reward=max(0.0, min(1.0, self._cumulative_reward)),
             reward_breakdown=breakdown or {},
             final_episode_score=final_episode_score,
         )
