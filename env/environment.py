@@ -54,6 +54,7 @@ class SREIncidentEnv(Environment[SREAction, SREObservation, SREState]):
         self._last_action_error: Optional[str] = None
         self._done = False
         self._episode_history: List[EpisodeStep] = []
+        self._resolution_action: Optional[SREAction] = None
         return self._build_observation()
 
     def step(
@@ -124,6 +125,7 @@ class SREIncidentEnv(Environment[SREAction, SREObservation, SREState]):
             self._investigated_services.add(action.service)
 
         if action.action_type in ("resolve", "escalate"):
+            self._resolution_action = action
             self._finalize_terminal_action(action)
 
         self._advance_time()
@@ -131,7 +133,10 @@ class SREIncidentEnv(Environment[SREAction, SREObservation, SREState]):
 
         final_score: Optional[float] = None
         if self._done:
-            final_score = clamp_episode_score(self._cumulative_reward)
+            from graders.grader import TaskGrader
+            final_score = TaskGrader(self._task).grade_episode(
+                self._episode_history, self._resolution_action
+            )
 
         obs = self._build_observation(
             step_reward=total_step_reward,
