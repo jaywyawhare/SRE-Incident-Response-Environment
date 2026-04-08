@@ -1,0 +1,155 @@
+{
+  "task_id": "easy",
+  "name": "The OOM Crash",
+  "max_steps": 25,
+  "sla_seconds_total": 120,
+  "hint": "Look for services that are down or report memory at capacity.",
+  "alerts": [
+    {
+      "service": "payment-service",
+      "severity": "critical",
+      "message": "payment-service is down — all checkout traffic failing"
+    }
+  ],
+  "service_metrics": {
+    "api-gateway": {
+      "cpu": 28,
+      "memory": 40,
+      "error_rate": 0.12,
+      "latency_p99_ms": 900,
+      "request_rate_rps": 1200,
+      "status": "degraded",
+      "last_deploy_ago_minutes": 120
+    },
+    "auth-service": {
+      "cpu": 35,
+      "memory": 42,
+      "error_rate": 0.02,
+      "latency_p99_ms": 180,
+      "request_rate_rps": 400,
+      "status": "healthy",
+      "last_deploy_ago_minutes": 240
+    },
+    "user-service": {
+      "cpu": 30,
+      "memory": 31,
+      "error_rate": 0.01,
+      "latency_p99_ms": 120,
+      "request_rate_rps": 300,
+      "status": "healthy",
+      "last_deploy_ago_minutes": 500
+    },
+    "payment-service": {
+      "cpu": 95,
+      "memory": 98,
+      "error_rate": 1.0,
+      "latency_p99_ms": 30000,
+      "request_rate_rps": 0,
+      "status": "down",
+      "last_deploy_ago_minutes": 30
+    },
+    "notification-service": {
+      "cpu": 22,
+      "memory": 20,
+      "error_rate": 0.0,
+      "latency_p99_ms": 80,
+      "request_rate_rps": 50,
+      "status": "healthy",
+      "last_deploy_ago_minutes": 400
+    },
+    "database": {
+      "cpu": 40,
+      "memory": 55,
+      "error_rate": 0.0,
+      "latency_p99_ms": 45,
+      "request_rate_rps": 200,
+      "status": "healthy",
+      "last_deploy_ago_minutes": 900
+    }
+  },
+  "logs": {
+    "payment-service": "FATAL: java.lang.OutOfMemoryError: Java heap space\n\tat com.payment.CheckoutHandler.allocate(CheckoutHandler.java:412)"
+  },
+  "deploy_history": {
+    "payment-service": [
+      {"version": "v2.4.1", "minutes_ago": 30, "author": "release-bot"},
+      {"version": "v2.4.0", "minutes_ago": 7200, "author": "release-bot"}
+    ]
+  },
+  "configs": {
+    "payment-service": "JAVA_OPTS=-Xmx512m -XX:+HeapDumpOnOutOfMemoryError"
+  },
+  "dependencies": {
+    "api-gateway": {"upstream": [], "downstream": ["auth-service", "payment-service", "notification-service"]},
+    "auth-service": {"upstream": ["api-gateway"], "downstream": ["database", "user-service"]},
+    "user-service": {"upstream": ["auth-service"], "downstream": []},
+    "payment-service": {"upstream": ["api-gateway"], "downstream": ["database"]},
+    "notification-service": {"upstream": ["api-gateway"], "downstream": []},
+    "database": {"upstream": ["auth-service", "payment-service"], "downstream": []}
+  },
+  "ground_truth": {
+    "root_cause_service": "payment-service",
+    "root_cause_description": "OOM error after deploy — heap exhausted",
+    "correct_fix_action": "rollback",
+    "acceptable_fixes": ["restart"],
+    "red_herring_services": [],
+    "related_services": [],
+    "escalation_acceptable": false
+  },
+  "resolved_service_metrics": {
+    "api-gateway": {
+      "cpu": 28,
+      "memory": 40,
+      "error_rate": 0.01,
+      "latency_p99_ms": 120,
+      "request_rate_rps": 1200,
+      "status": "healthy",
+      "last_deploy_ago_minutes": 120
+    },
+    "auth-service": {
+      "cpu": 35,
+      "memory": 42,
+      "error_rate": 0.02,
+      "latency_p99_ms": 180,
+      "request_rate_rps": 400,
+      "status": "healthy",
+      "last_deploy_ago_minutes": 240
+    },
+    "user-service": {
+      "cpu": 30,
+      "memory": 31,
+      "error_rate": 0.01,
+      "latency_p99_ms": 120,
+      "request_rate_rps": 300,
+      "status": "healthy",
+      "last_deploy_ago_minutes": 500
+    },
+    "payment-service": {
+      "cpu": 40,
+      "memory": 45,
+      "error_rate": 0.0,
+      "latency_p99_ms": 95,
+      "request_rate_rps": 800,
+      "status": "healthy",
+      "last_deploy_ago_minutes": 35
+    },
+    "notification-service": {
+      "cpu": 22,
+      "memory": 20,
+      "error_rate": 0.0,
+      "latency_p99_ms": 80,
+      "request_rate_rps": 50,
+      "status": "healthy",
+      "last_deploy_ago_minutes": 400
+    },
+    "database": {
+      "cpu": 40,
+      "memory": 55,
+      "error_rate": 0.0,
+      "latency_p99_ms": 45,
+      "request_rate_rps": 200,
+      "status": "healthy",
+      "last_deploy_ago_minutes": 900
+    }
+  }
+}

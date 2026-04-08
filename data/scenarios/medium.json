@@ -1,0 +1,244 @@
+{
+  "task_id": "medium",
+  "name": "The Cascade",
+  "max_steps": 12,
+  "sla_seconds_total": 40,
+  "hint": null,
+  "alerts": [
+    {
+      "service": "api-gateway",
+      "severity": "critical",
+      "message": "Error rate 45% \u2014 SLA at risk"
+    },
+    {
+      "service": "database",
+      "severity": "warning",
+      "message": "High connection count and query latency"
+    },
+    {
+      "service": "payment-service",
+      "severity": "warning",
+      "message": "Latency p99 > 2000ms"
+    }
+  ],
+  "service_metrics": {
+    "api-gateway": {
+      "cpu": 62,
+      "memory": 45,
+      "error_rate": 0.45,
+      "latency_p99_ms": 3200,
+      "request_rate_rps": 2000,
+      "status": "degraded",
+      "last_deploy_ago_minutes": 400
+    },
+    "auth-service": {
+      "cpu": 91,
+      "memory": 83,
+      "error_rate": 0.68,
+      "latency_p99_ms": 7800,
+      "request_rate_rps": 150,
+      "status": "degraded",
+      "last_deploy_ago_minutes": 45
+    },
+    "user-service": {
+      "cpu": 30,
+      "memory": 31,
+      "error_rate": 0.01,
+      "latency_p99_ms": 120,
+      "request_rate_rps": 300,
+      "status": "healthy",
+      "last_deploy_ago_minutes": 500
+    },
+    "payment-service": {
+      "cpu": 55,
+      "memory": 52,
+      "error_rate": 0.08,
+      "latency_p99_ms": 2100,
+      "request_rate_rps": 280,
+      "status": "degraded",
+      "last_deploy_ago_minutes": 55
+    },
+    "notification-service": {
+      "cpu": 22,
+      "memory": 20,
+      "error_rate": 0.0,
+      "latency_p99_ms": 80,
+      "request_rate_rps": 50,
+      "status": "healthy",
+      "last_deploy_ago_minutes": 400
+    },
+    "database": {
+      "cpu": 89,
+      "memory": 82,
+      "error_rate": 0.0,
+      "latency_p99_ms": 1400,
+      "request_rate_rps": 500,
+      "status": "degraded",
+      "last_deploy_ago_minutes": 2000
+    }
+  },
+  "logs": {
+    "auth-service": "ERROR: slow query detected (4800ms) \u2014 awaiting DB connection\nERROR: slow query detected (5100ms) \u2014 awaiting DB connection\nWARN: 847 requests queued waiting for available connection",
+    "api-gateway": "ERROR: upstream timeout contacting auth-service after 5000ms\nERROR: upstream timeout contacting auth-service after 5000ms",
+    "database": "WARN: 312 active connections (limit=400)\nWARN: query queue depth 280 \u2014 possible connection saturation from upstream pool misconfiguration\nINFO: no schema migrations run in 2000 days",
+    "payment-service": "ERROR: auth token validation timeout after 5000ms\nWARN: checkout requests queuing behind auth validation"
+  },
+  "deploy_history": {
+    "auth-service": [
+      {
+        "version": "v1.9.2",
+        "minutes_ago": 45,
+        "author": "sre-team"
+      },
+      {
+        "version": "v1.9.1",
+        "minutes_ago": 9000,
+        "author": "sre-team"
+      }
+    ],
+    "payment-service": [
+      {
+        "version": "v3.0.1",
+        "minutes_ago": 55,
+        "author": "payments-team"
+      },
+      {
+        "version": "v3.0.0",
+        "minutes_ago": 2000,
+        "author": "payments-team"
+      }
+    ],
+    "database": [
+      {
+        "version": "pg-14.5",
+        "minutes_ago": 2000,
+        "author": "dba"
+      }
+    ]
+  },
+  "configs": {
+    "auth-service": "auth.pool.size=5\nauth.query.timeout.ms=30000\nauth.pool.size.previous=50",
+    "database": "max_connections=400\nshared_buffers=4GB\nwork_mem=64MB"
+  },
+  "dependencies": {
+    "api-gateway": {
+      "upstream": [],
+      "downstream": [
+        "auth-service",
+        "payment-service",
+        "notification-service"
+      ]
+    },
+    "auth-service": {
+      "upstream": [
+        "api-gateway"
+      ],
+      "downstream": [
+        "database",
+        "user-service"
+      ]
+    },
+    "user-service": {
+      "upstream": [
+        "auth-service"
+      ],
+      "downstream": []
+    },
+    "payment-service": {
+      "upstream": [
+        "api-gateway"
+      ],
+      "downstream": [
+        "database"
+      ]
+    },
+    "notification-service": {
+      "upstream": [
+        "api-gateway"
+      ],
+      "downstream": []
+    },
+    "database": {
+      "upstream": [
+        "auth-service",
+        "payment-service"
+      ],
+      "downstream": []
+    }
+  },
+  "ground_truth": {
+    "root_cause_service": "auth-service",
+    "root_cause_description": "connection pool exhausted due to config change reducing pool size from 50 to 5",
+    "correct_fix_action": "rollback",
+    "acceptable_fixes": [
+      "apply_fix"
+    ],
+    "red_herring_services": [
+      "database",
+      "payment-service"
+    ],
+    "related_services": [
+      "api-gateway"
+    ],
+    "escalation_acceptable": false,
+    "acceptable_fix_params": {
+      "fix_type": "increase_pool_size"
+    }
+  },
+  "resolved_service_metrics": {
+    "api-gateway": {
+      "cpu": 40,
+      "memory": 42,
+      "error_rate": 0.01,
+      "latency_p99_ms": 180,
+      "request_rate_rps": 2000,
+      "status": "healthy",
+      "last_deploy_ago_minutes": 400
+    },
+    "auth-service": {
+      "cpu": 45,
+      "memory": 50,
+      "error_rate": 0.01,
+      "latency_p99_ms": 120,
+      "request_rate_rps": 400,
+      "status": "healthy",
+      "last_deploy_ago_minutes": 50
+    },
+    "user-service": {
+      "cpu": 30,
+      "memory": 31,
+      "error_rate": 0.01,
+      "latency_p99_ms": 120,
+      "request_rate_rps": 300,
+      "status": "healthy",
+      "last_deploy_ago_minutes": 500
+    },
+    "payment-service": {
+      "cpu": 35,
+      "memory": 38,
+      "error_rate": 0.01,
+      "latency_p99_ms": 140,
+      "request_rate_rps": 400,
+      "status": "healthy",
+      "last_deploy_ago_minutes": 55
+    },
+    "notification-service": {
+      "cpu": 22,
+      "memory": 20,
+      "error_rate": 0.0,
+      "latency_p99_ms": 80,
+      "request_rate_rps": 50,
+      "status": "healthy",
+      "last_deploy_ago_minutes": 400
+    },
+    "database": {
+      "cpu": 42,
+      "memory": 58,
+      "error_rate": 0.0,
+      "latency_p99_ms": 120,
+      "request_rate_rps": 500,
+      "status": "healthy",
+      "last_deploy_ago_minutes": 2000
+    }
+  }
+}

@@ -1,0 +1,177 @@
+{
+  "task_id": "hard",
+  "name": "The Ghost",
+  "max_steps": 7,
+  "sla_seconds_total": 15,
+  "hint": null,
+  "alerts": [
+    {
+      "service": "api-gateway",
+      "severity": "warning",
+      "message": "p99 latency elevated — intermittent user reports"
+    },
+    {
+      "service": "notification-service",
+      "severity": "warning",
+      "message": "Consumer lag growing — queue backlog at 45000ms"
+    },
+    {
+      "service": "payment-service",
+      "severity": "warning",
+      "message": "Checkout error rate elevated since recent deploy"
+    }
+  ],
+  "service_metrics": {
+    "api-gateway": {
+      "cpu": 48,
+      "memory": 44,
+      "error_rate": 0.05,
+      "latency_p99_ms": 890,
+      "request_rate_rps": 1800,
+      "status": "degraded",
+      "last_deploy_ago_minutes": 300
+    },
+    "auth-service": {
+      "cpu": 32,
+      "memory": 40,
+      "error_rate": 0.01,
+      "latency_p99_ms": 150,
+      "request_rate_rps": 350,
+      "status": "healthy",
+      "last_deploy_ago_minutes": 200
+    },
+    "user-service": {
+      "cpu": 31,
+      "memory": 38,
+      "error_rate": 0.05,
+      "latency_p99_ms": 210,
+      "request_rate_rps": 500,
+      "status": "healthy",
+      "last_deploy_ago_minutes": 360
+    },
+    "payment-service": {
+      "cpu": 44,
+      "memory": 46,
+      "error_rate": 0.04,
+      "latency_p99_ms": 480,
+      "request_rate_rps": 580,
+      "status": "degraded",
+      "last_deploy_ago_minutes": 90
+    },
+    "notification-service": {
+      "cpu": 68,
+      "memory": 71,
+      "error_rate": 0.03,
+      "latency_p99_ms": 3200,
+      "request_rate_rps": 40,
+      "status": "degraded",
+      "last_deploy_ago_minutes": 85
+    },
+    "database": {
+      "cpu": 35,
+      "memory": 48,
+      "error_rate": 0.0,
+      "latency_p99_ms": 55,
+      "request_rate_rps": 220,
+      "status": "healthy",
+      "last_deploy_ago_minutes": 8000
+    }
+  },
+  "logs": {
+    "api-gateway": "WARN: elevated p99 latency on /profile endpoint\nINFO: 5% of requests returning 500 — no clear URL pattern in access logs\nINFO: /checkout and /auth endpoints nominal",
+    "user-service": "WARN: intermittent 500s on profile lookup — no consistent error message\nINFO: heap usage nominal at 38%\nWARN: response time variance high for /profile endpoint",
+    "payment-service": "ERROR: downstream profile enrichment failed — using cached user data\nINFO: deploy v3.1.0 canary at 10% — no errors in canary cohort\nWARN: checkout latency elevated when user profile unavailable",
+    "notification-service": "ERROR: consumer lag 45000ms — queue backlog growing\nERROR: failed to fetch user preferences for batch — retrying\nWARN: deploy v2.0.4 template batching may be causing fan-out delays"
+  },
+  "deploy_history": {
+    "payment-service": [
+      {"version": "v3.1.0", "minutes_ago": 90, "author": "payments-team"},
+      {"version": "v3.0.9", "minutes_ago": 2000, "author": "payments-team"}
+    ],
+    "notification-service": [
+      {"version": "v2.0.4", "minutes_ago": 85, "author": "comms-team"},
+      {"version": "v2.0.3", "minutes_ago": 3000, "author": "comms-team"}
+    ],
+    "user-service": [
+      {"version": "v4.2.0-config", "minutes_ago": 370, "author": "platform-team"},
+      {"version": "v4.1.9", "minutes_ago": 8000, "author": "platform-team"}
+    ]
+  },
+  "configs": {
+    "user-service": "cache.ttl.seconds=21600\nuser.shard.strategy=mod10\nprofile.cache.version=4\nprofile.cache.warmup=false",
+    "notification-service": "batch.size=500\nbatch.timeout.ms=5000\nretry.max=10"
+  },
+  "dependencies": {
+    "api-gateway": {"upstream": [], "downstream": ["auth-service", "payment-service", "notification-service", "user-service"]},
+    "auth-service": {"upstream": ["api-gateway"], "downstream": ["database"]},
+    "user-service": {"upstream": ["api-gateway"], "downstream": []},
+    "payment-service": {"upstream": ["api-gateway"], "downstream": ["database", "user-service"]},
+    "notification-service": {"upstream": ["api-gateway"], "downstream": ["user-service"]},
+    "database": {"upstream": ["auth-service", "payment-service"], "downstream": []}
+  },
+  "ground_truth": {
+    "root_cause_service": "user-service",
+    "root_cause_description": "cache poisoning — corrupted entries for user IDs ending in 7, caused by config change disabling cache invalidation with mod10 sharding",
+    "correct_fix_action": "clear_cache",
+    "acceptable_fixes": [],
+    "red_herring_services": ["payment-service", "notification-service"],
+    "related_services": ["api-gateway"],
+    "escalation_acceptable": true
+  },
+  "resolved_service_metrics": {
+    "api-gateway": {
+      "cpu": 38,
+      "memory": 42,
+      "error_rate": 0.0,
+      "latency_p99_ms": 120,
+      "request_rate_rps": 1800,
+      "status": "healthy",
+      "last_deploy_ago_minutes": 300
+    },
+    "auth-service": {
+      "cpu": 32,
+      "memory": 40,
+      "error_rate": 0.01,
+      "latency_p99_ms": 150,
+      "request_rate_rps": 350,
+      "status": "healthy",
+      "last_deploy_ago_minutes": 200
+    },
+    "user-service": {
+      "cpu": 26,
+      "memory": 34,
+      "error_rate": 0.0,
+      "latency_p99_ms": 95,
+      "request_rate_rps": 500,
+      "status": "healthy",
+      "last_deploy_ago_minutes": 375
+    },
+    "payment-service": {
+      "cpu": 35,
+      "memory": 40,
+      "error_rate": 0.005,
+      "latency_p99_ms": 140,
+      "request_rate_rps": 600,
+      "status": "healthy",
+      "last_deploy_ago_minutes": 95
+    },
+    "notification-service": {
+      "cpu": 22,
+      "memory": 28,
+      "error_rate": 0.0,
+      "latency_p99_ms": 90,
+      "request_rate_rps": 40,
+      "status": "healthy",
+      "last_deploy_ago_minutes": 90
+    },
+    "database": {
+      "cpu": 35,
+      "memory": 48,
+      "error_rate": 0.0,
+      "latency_p99_ms": 55,
+      "request_rate_rps": 220,
+      "status": "healthy",
+      "last_deploy_ago_minutes": 8000
+    }
+  }
+}
