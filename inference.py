@@ -4,7 +4,7 @@ import json
 import os
 import sys
 import time
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple  # noqa: F401
 
 import httpx
 
@@ -200,7 +200,6 @@ def main() -> None:
         flush=True,
     )
 
-    rows: List[Tuple[str, int, float, float]] = []
     with httpx.Client(timeout=120.0) as client:
         client.get(f"{SRE_ENV_URL}/health").raise_for_status()
         for task_id in ("easy", "medium", "hard"):
@@ -208,15 +207,11 @@ def main() -> None:
                 print("ERROR: global time budget exceeded before finishing tasks", file=sys.stderr)
                 sys.exit(1)
             steps, score, elapsed = run_episode(client, task_id, use_llm, llm, deadline)
-            rows.append((task_id, steps, score, elapsed))
-
-    summary = {
-        "tasks": [
-            {"task_id": tid, "steps": st, "final_score": sc, "time_s": el}
-            for tid, st, sc, el in rows
-        ]
-    }
-    print("[END]", json.dumps(summary), flush=True)
+            print(
+                "[END]",
+                json.dumps({"task_id": task_id, "score": score, "steps": steps, "time_s": elapsed}),
+                flush=True,
+            )
 
 
 if __name__ == "__main__":
