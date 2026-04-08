@@ -199,11 +199,6 @@ def main() -> None:
         ),
         flush=True,
     )
-    print(f"SRE_ENV_URL={SRE_ENV_URL}")
-    print(f"API_BASE_URL={API_BASE_URL}")
-    print(f"MODEL_NAME={MODEL_NAME}")
-    print(f"HF_TOKEN={'set' if use_llm else 'unset (scripted baseline)'}")
-    print(f"INFERENCE_MAX_SECONDS={INFERENCE_MAX_SECONDS}\n")
 
     rows: List[Tuple[str, int, float, float]] = []
     with httpx.Client(timeout=120.0) as client:
@@ -215,10 +210,6 @@ def main() -> None:
             steps, score, elapsed = run_episode(client, task_id, use_llm, llm, deadline)
             rows.append((task_id, steps, score, elapsed))
 
-    print(f"{'task':<8} {'steps':>6} {'final_score':>12} {'time_s':>10}")
-    for tid, st, sc, el in rows:
-        print(f"{tid:<8} {st:>6} {sc:>12.4f} {el:>10.2f}")
-
     summary = {
         "tasks": [
             {"task_id": tid, "steps": st, "final_score": sc, "time_s": el}
@@ -226,7 +217,6 @@ def main() -> None:
         ]
     }
     print("END", json.dumps(summary), flush=True)
-    print("\nJSON_SUMMARY:", json.dumps(summary))
 
 
 if __name__ == "__main__":
