@@ -18,7 +18,7 @@ class TaskGrader:
         resolution: Optional[SREAction],
     ) -> float:
         if resolution is None or resolution.action_type != "resolve":
-            return 0.0
+            return 0.01
 
         score = 0.0
         svc = resolution.service or ""
@@ -59,4 +59,4 @@ class TaskGrader:
         if not wrong_remediation:
             score += 0.10
 
-        return round(min(score, 1.0), 4)
+        return round(max(min(score, 0.99), 0.01), 4)

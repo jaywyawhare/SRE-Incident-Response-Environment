@@ -19,7 +19,7 @@ def test_perfect_solution_scores_near_1() -> None:
         fix_applied="rollback",
     )
     score = grader.grade_episode(hist, res)
-    assert 0.85 <= score <= 1.0
+    assert 0.85 <= score < 1.0
 
 
 def test_wrong_service_scores_low() -> None:
@@ -61,7 +61,7 @@ def test_scores_between_0_and_1() -> None:
     grader = TaskGrader(task)
     for _ in range(3):
         s = grader.grade_episode([], None)
-        assert 0.0 <= s <= 1.0
+        assert 0.0 < s < 1.0
 
 
 def test_deterministic_same_input_same_output() -> None:
@@ -96,4 +96,4 @@ def test_grader_uses_episode_env() -> None:
             fix_applied="rollback",
         ),
     )
-    assert 0.0 <= score <= 1.0
+    assert 0.0 < score < 1.0
