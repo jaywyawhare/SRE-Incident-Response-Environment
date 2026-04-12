@@ -16,7 +16,42 @@ SRE_ENV_URL = os.environ.get("SRE_ENV_URL") or os.environ.get("ENV_BASE_URL", "h
 
 INFERENCE_MAX_SECONDS = float(os.environ.get("INFERENCE_MAX_SECONDS", str(19 * 60)))
 DEFAULT_ESCALATION_TEAM = os.environ.get("DEFAULT_ESCALATION_TEAM", "platform")
+BENCHMARK = "sre-incident-env"
+TASKS = ["task_easy", "task_medium", "task_hard"]
+SUCCESS_SCORE_THRESHOLD = 0.5
 
+
+# ---------------------------------------------------------------------------
+# Logging — strict [START] / [STEP] / [END] format expected by the platform
+# ---------------------------------------------------------------------------
+
+def log_start(task: str, env: str, model: str) -> None:
+    print(f"[START] task={task} env={env} model={model}", flush=True)
+
+
+def log_step(step: int, action: str, reward: float, done: bool, error: str | None = None) -> None:
+    action_preview = action[:100] + "..." if len(action) > 100 else action
+    error_val = error if error else "null"
+    done_val = str(done).lower()
+    print(
+        f'[STEP] step={step} action="{action_preview}" '
+        f"reward={reward:.2f} done={done_val} error={error_val}",
+        flush=True,
+    )
+
+
+def log_end(success: bool, steps: int, score: float, rewards: List[float]) -> None:
+    rewards_str = ",".join(f"{r:.2f}" for r in rewards)
+    print(
+        f"[END] success={str(success).lower()} steps={steps} "
+        f"score={score:.2f} rewards={rewards_str}",
+        flush=True,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
 def _build_fallback_seq(task_id: str) -> List[Dict[str, Any]]:
     from env.tasks.base import load_scenario
@@ -118,63 +153,80 @@ Do NOT include fix_applied or root_cause_description for non-resolve actions."""
     return _sanitize_action(json.loads(text))
 
 
-def run_episode(
+# ---------------------------------------------------------------------------
+# Episode runner
+# ---------------------------------------------------------------------------
+
+def run_task(
     client: httpx.Client,
     task_id: str,
     use_llm: bool,
     llm: Any | None,
     deadline: float,
-) -> Tuple[int, float, float]:
-    r = client.post(f"{SRE_ENV_URL}/reset", json={"task_id": task_id})
-    r.raise_for_status()
-    obs = r.json()["observation"]
-    history: List[str] = []
-    cumulative = 0.0
-    steps = 0
-    t0 = time.perf_counter()
-    max_steps = int(obs.get("max_steps", 25))
-    fallback_seq = _build_fallback_seq(task_id)
+) -> Tuple[float, List[float], int]:
+    step_rewards: List[float] = []
+    steps_taken = 0
+    score = 0.01
 
-    for _ in range(max_steps + 5):
-        if time.perf_counter() > deadline:
-            raise TimeoutError("INFERENCE_MAX_SECONDS exceeded")
+    log_start(task=task_id, env=BENCHMARK, model=MODEL_NAME)
 
-        if use_llm and llm is not None:
-            try:
-                action = _llm_action(llm, task_id, obs, history)
-            except Exception:
-                action = _fallback_action(fallback_seq, steps)
-        else:
-            action = _fallback_action(fallback_seq, steps)
+    try:
+        r = client.post(f"{SRE_ENV_URL}/reset", json={"task_id": task_id})
+        r.raise_for_status()
+        reset_body = r.json()
+        obs = reset_body["observation"]
+        max_steps = int(obs.get("max_steps", 25))
+        fallback_seq = _build_fallback_seq(task_id)
+        history: List[str] = []
 
-        sr = client.post(f"{SRE_ENV_URL}/step", json={"action": action})
-        sr.raise_for_status()
-        body = sr.json()
-        obs = body["observation"]
-        cumulative = float(obs.get("cumulative_reward", body.get("reward") or 0.0))
-        history.append(json.dumps(action))
-        steps += 1
-        print(
-            "[STEP]",
-            json.dumps(
-                {
-                    "task_id": task_id,
-                    "step": steps,
-                    "action": action,
-                    "done": bool(body.get("done")),
-                    "cumulative_reward": cumulative,
-                },
-                default=str,
-            ),
-            flush=True,
-        )
-        if body.get("done"):
-            fe = obs.get("final_episode_score")
-            final = float(fe) if fe is not None else float(cumulative)
-            return steps, final, time.perf_counter() - t0
+        for _ in range(max_steps + 5):
+            if time.perf_counter() > deadline:
+                raise TimeoutError("INFERENCE_MAX_SECONDS exceeded")
 
-    return steps, float(cumulative), time.perf_counter() - t0
+            if use_llm and llm is not None:
+                try:
+                    action = _llm_action(llm, task_id, obs, history)
+                except Exception:
+                    action = _fallback_action(fallback_seq, steps_taken)
+            else:
+                action = _fallback_action(fallback_seq, steps_taken)
 
+            sr = client.post(f"{SRE_ENV_URL}/step", json={"action": action})
+            sr.raise_for_status()
+            body = sr.json()
+            obs = body["observation"]
+            done = bool(body.get("done"))
+
+            step_reward = float(obs.get("cumulative_reward", body.get("reward") or 0.01))
+            step_rewards.append(step_reward)
+            history.append(json.dumps(action))
+            steps_taken += 1
+
+            action_str = action.get("action_type", "unknown")
+            log_step(step=steps_taken, action=action_str, reward=step_reward, done=done)
+
+            if done:
+                fe = obs.get("final_episode_score")
+                score = float(fe) if fe is not None else step_reward
+                break
+
+        score = min(max(score, 0.01), 0.99)
+        success = score >= SUCCESS_SCORE_THRESHOLD
+
+    except TimeoutError:
+        raise
+    except Exception as e:
+        print(f"[DEBUG] Task {task_id} failed: {e}", flush=True, file=sys.stderr)
+        score = 0.01
+        success = False
+
+    log_end(success=success, steps=steps_taken, score=score, rewards=step_rewards or [0.01])
+    return score, step_rewards, steps_taken
+
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
 
 def main() -> None:
     deadline = time.perf_counter() + INFERENCE_MAX_SECONDS
@@ -182,37 +234,15 @@ def main() -> None:
     llm = None
     if use_llm:
         from openai import OpenAI
-
         llm = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)
-
-    print(
-        "[START]",
-        json.dumps(
-            {
-                "SRE_ENV_URL": SRE_ENV_URL,
-                "API_BASE_URL": API_BASE_URL,
-                "MODEL_NAME": MODEL_NAME,
-                "HF_TOKEN": "set" if use_llm else "unset",
-                "INFERENCE_MAX_SECONDS": INFERENCE_MAX_SECONDS,
-                "tasks": ["task_easy", "task_medium", "task_hard"],
-            },
-            default=str,
-        ),
-        flush=True,
-    )
 
     with httpx.Client(timeout=120.0) as client:
         client.get(f"{SRE_ENV_URL}/health").raise_for_status()
-        for task_id in ("task_easy", "task_medium", "task_hard"):
+        for task_id in TASKS:
             if time.perf_counter() > deadline:
-                print("ERROR: global time budget exceeded before finishing tasks", file=sys.stderr)
+                print("ERROR: global time budget exceeded", file=sys.stderr)
                 sys.exit(1)
-            steps, score, elapsed = run_episode(client, task_id, use_llm, llm, deadline)
-            print(
-                "[END]",
-                json.dumps({"task_id": task_id, "score": score, "steps": steps, "time_s": elapsed}),
-                flush=True,
-            )
+            run_task(client, task_id, use_llm, llm, deadline)
 
 
 if __name__ == "__main__":
