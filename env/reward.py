@@ -147,4 +147,4 @@ def compute_terminal_reward(
 
 
 def clamp_episode_score(cumulative_reward: float) -> float:
-    return max(0.0, min(1.0, cumulative_reward))
+    return max(0.01, min(0.99, cumulative_reward))

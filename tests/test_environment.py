@@ -70,5 +70,5 @@ def test_repeat_action_penalty() -> None:
 
 
 def test_clamp_episode_score() -> None:
-    assert clamp_episode_score(1.5) == 1.0
-    assert clamp_episode_score(-0.5) == 0.0
+    assert clamp_episode_score(1.5) == 0.99
+    assert clamp_episode_score(-0.5) == 0.01

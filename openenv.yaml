@@ -1,6 +1,6 @@
 spec_version: 1
 name: sre-incident-env
-type: space
+type: coding
 runtime: fastapi
 app: server.app:app
 port: 7860
@@ -16,33 +16,61 @@ tags:
   - incident-response
   - production
   - real-world
+
+endpoints:
+  reset: /reset
+  step: /step
+  state: /state
+
+reward:
+  min: 0.01
+  max: 0.99
+
 tasks:
-  - id: easy
+  - id: task_easy
     name: "The OOM Crash"
     description: "Single service OOM after bad deploy. Obvious from metrics."
     difficulty: easy
-    grader: deterministic
     max_steps: 25
-    target_score_range: [0.75, 0.90]
-  - id: medium
+    weight: 0.3
+    grader:
+      type: deterministic
+      prompt_template: "Score the SRE incident resolution quality 0.0 to 1.0 based on correct root cause identification, fix applied, and speed."
+  - id: task_medium
     name: "The Cascade"
     description: "Cascading failure across 3 services. Requires dependency tracing."
     difficulty: medium
-    grader: deterministic
     max_steps: 20
-    target_score_range: [0.45, 0.65]
-  - id: hard
+    weight: 0.5
+    grader:
+      type: deterministic
+      prompt_template: "Score the SRE incident resolution quality 0.0 to 1.0 based on correct root cause identification, fix applied, and speed."
+  - id: task_hard
     name: "The Ghost"
     description: "Intermittent 5% failure from cache corruption. Multiple red herrings."
     difficulty: hard
-    grader: deterministic
     max_steps: 15
-    target_score_range: [0.15, 0.35]
+    weight: 1.0
+    grader:
+      type: deterministic
+      prompt_template: "Score the SRE incident resolution quality 0.0 to 1.0 based on correct root cause identification, fix applied, and speed."
+
 observation_space:
   type: object
-  description: "Service metrics, alerts, log cache, and episode state"
+  fields:
+    step: integer
+    max_steps: integer
+    sla_seconds_remaining: integer
+    alerts: array
+    service_metrics: object
+    last_action_result: string
+
 action_space:
   type: object
-  description: "Investigation and remediation actions against named services"
-reward_range: [-1.0, 1.0]
-episode_timeout: 25
+  fields:
+    action_type: string
+    service: string
+    parameters: object
+    reasoning: string
+    root_cause_description: string
+    fix_applied: string

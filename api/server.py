@@ -35,6 +35,7 @@ def _obs_dict(obs: SREObservation) -> Dict[str, Any]:
 @app.post("/reset")
 def reset(body: Dict[str, Any] | None = None) -> Dict[str, Any]:
     task_id = (body or {}).get("task_id", "easy")
+    task_id = task_id.lower().replace("task_", "")
     with _lock:
         obs = _env.reset(task_id)
     return {"observation": _obs_dict(obs), "reward": obs.reward, "done": obs.done}

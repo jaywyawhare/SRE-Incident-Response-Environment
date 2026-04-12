@@ -20,7 +20,7 @@ DEFAULT_ESCALATION_TEAM = os.environ.get("DEFAULT_ESCALATION_TEAM", "platform")
 
 def _build_fallback_seq(task_id: str) -> List[Dict[str, Any]]:
     from env.tasks.base import load_scenario
-    gt = load_scenario(task_id).ground_truth
+    gt = load_scenario(task_id.lower().replace("task_", "")).ground_truth
     return [
         {"action_type": "check_metrics", "service": gt.root_cause_service},
         {"action_type": "read_logs", "service": gt.root_cause_service},
@@ -194,7 +194,7 @@ def main() -> None:
                 "MODEL_NAME": MODEL_NAME,
                 "HF_TOKEN": "set" if use_llm else "unset",
                 "INFERENCE_MAX_SECONDS": INFERENCE_MAX_SECONDS,
-                "tasks": ["easy", "medium", "hard"],
+                "tasks": ["task_easy", "task_medium", "task_hard"],
             },
             default=str,
         ),
@@ -203,7 +203,7 @@ def main() -> None:
 
     with httpx.Client(timeout=120.0) as client:
         client.get(f"{SRE_ENV_URL}/health").raise_for_status()
-        for task_id in ("easy", "medium", "hard"):
+        for task_id in ("task_easy", "task_medium", "task_hard"):
             if time.perf_counter() > deadline:
                 print("ERROR: global time budget exceeded before finishing tasks", file=sys.stderr)
                 sys.exit(1)
