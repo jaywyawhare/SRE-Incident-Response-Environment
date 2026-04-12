@@ -49,7 +49,8 @@ def step_endpoint(body: Dict[str, Any]) -> Dict[str, Any]:
         raise HTTPException(status_code=400, detail=e.errors()) from e
     with _lock:
         obs = _env.step(action)
-    return {"observation": _obs_dict(obs), "reward": obs.reward, "done": obs.done}
+    score = obs.final_episode_score if (obs.done and obs.final_episode_score is not None) else obs.cumulative_reward
+    return {"observation": _obs_dict(obs), "reward": score, "done": obs.done}
 
 
 @app.get("/state")
