@@ -34,7 +34,7 @@ tasks:
     max_steps: 25
     weight: 0.3
     grader:
-      type: deterministic
+      type: llm
       prompt_template: "Score the SRE incident resolution quality 0.0 to 1.0 based on correct root cause identification, fix applied, and speed."
   - id: task_medium
     name: "The Cascade"
@@ -43,7 +43,7 @@ tasks:
     max_steps: 20
     weight: 0.5
     grader:
-      type: deterministic
+      type: llm
       prompt_template: "Score the SRE incident resolution quality 0.0 to 1.0 based on correct root cause identification, fix applied, and speed."
   - id: task_hard
     name: "The Ghost"
@@ -52,7 +52,7 @@ tasks:
     max_steps: 15
     weight: 1.0
     grader:
-      type: deterministic
+      type: llm
       prompt_template: "Score the SRE incident resolution quality 0.0 to 1.0 based on correct root cause identification, fix applied, and speed."
 
 observation_space:
