@@ -21,18 +21,21 @@ tasks:
     name: "The OOM Crash"
     description: "Single service OOM after bad deploy. Obvious from metrics."
     difficulty: easy
+    grader: deterministic
     max_steps: 25
     target_score_range: [0.75, 0.90]
   - id: medium
     name: "The Cascade"
     description: "Cascading failure across 3 services. Requires dependency tracing."
     difficulty: medium
+    grader: deterministic
     max_steps: 20
     target_score_range: [0.45, 0.65]
   - id: hard
     name: "The Ghost"
     description: "Intermittent 5% failure from cache corruption. Multiple red herrings."
     difficulty: hard
+    grader: deterministic
     max_steps: 15
     target_score_range: [0.15, 0.35]
 observation_space:

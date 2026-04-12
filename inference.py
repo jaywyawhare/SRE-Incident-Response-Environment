@@ -169,8 +169,9 @@ def run_episode(
             flush=True,
         )
         if body.get("done"):
-            final = obs.get("final_episode_score") or cumulative
-            return steps, float(final), time.perf_counter() - t0
+            fe = obs.get("final_episode_score")
+            final = float(fe) if fe is not None else float(cumulative)
+            return steps, final, time.perf_counter() - t0
 
     return steps, float(cumulative), time.perf_counter() - t0
 

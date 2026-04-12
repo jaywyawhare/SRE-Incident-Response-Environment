@@ -31,7 +31,12 @@ def check_openenv_yaml() -> bool:
     try:
         import yaml  # type: ignore
     except ImportError:
-        if "id: easy" in text and "id: medium" in text and "id: hard" in text:
+        if (
+            "id: easy" in text
+            and "id: medium" in text
+            and "id: hard" in text
+            and text.count("grader:") >= 3
+        ):
             _ok("openenv.yaml present (install pyyaml for strict YAML parse)")
             return True
         _fail("openenv.yaml: expected easy/medium/hard task ids")
@@ -42,7 +47,11 @@ def check_openenv_yaml() -> bool:
     if len(tasks) < 3:
         _fail(f"openenv.yaml must define >= 3 tasks, got {len(tasks)}")
         return False
-    _ok(f"openenv.yaml: {len(tasks)} tasks, name={data.get('name')!r}")
+    missing_grader = [t.get("id", "?") for t in tasks if t.get("grader") in (None, False, "")]
+    if missing_grader:
+        _fail(f"openenv.yaml: each task needs a grader (missing on: {missing_grader})")
+        return False
+    _ok(f"openenv.yaml: {len(tasks)} tasks with graders, name={data.get('name')!r}")
     return True
 
 
@@ -136,12 +145,15 @@ def check_graders_all_tasks() -> bool:
         )
         grader = TaskGrader(task)
         score = grader.grade_episode(hist, res)
-        if not (0.0 <= score <= 1.0):
-            _fail(f"grader {task_id}: score {score} out of range")
+        if not (0.0 < score < 1.0):
+            _fail(
+                f"grader {task_id}: score {score} out of range "
+                "(platform requires strictly between 0 and 1, exclusive)"
+            )
             return False
         print(f"      task={task_id} grader_score={score:.4f}")
 
-    _ok("3 tasks: TaskGrader scores in [0.0, 1.0]")
+    _ok("3 tasks: TaskGrader scores in (0.0, 1.0)")
     return True
 
 
